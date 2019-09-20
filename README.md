@@ -1,0 +1,2 @@
+# ChartForCocosCreator
+这是用creator中的Graphics实现的图表组件
