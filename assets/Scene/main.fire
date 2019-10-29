@@ -41,8 +41,8 @@
     },
     "_scale": {
       "__type__": "cc.Vec3",
-      "x": 0.6129668563845001,
-      "y": 0.6129668563845001,
+      "x": 0.854931640625,
+      "y": 0.854931640625,
       "z": 1
     },
     "_quat": {
@@ -282,6 +282,8 @@
     },
     "rowCount": 10,
     "columnCount": 15,
+    "animate": true,
+    "animateTime": 2,
     "_id": "a5KO91pL5CLLCSlcNC3xeQ"
   },
   {

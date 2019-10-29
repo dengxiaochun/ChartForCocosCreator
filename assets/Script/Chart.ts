@@ -5,7 +5,7 @@ function random(min,max) {
 }
 
 @ccclass
-export default class Chart extends cc.Component {
+export default class DrawTable extends cc.Component {
     /**
      * 图表rect
      */
@@ -24,6 +24,17 @@ export default class Chart extends cc.Component {
     @property(Number)
     columnCount:number = 0;
 
+    /**
+     * 动画绘制
+     */
+    @property
+    animate = true; 
+
+    /**
+     * 动画绘制时间
+     */
+    @property
+    animateTime = 5;
     /**
      * 行列交织的所有坐标，一维为行坐标(改变x值)，二维维列坐标(改变y值)
      */
@@ -91,14 +102,17 @@ export default class Chart extends cc.Component {
 
         this.drawBasicTable()
         this.addTableTitle()
-        this.addEvent()
-
         {
             const t = []
             for (let i = 0; i < this.columnCount; i++) {
                 t[i] = random(1,10)
             }
-            this.drawTrends(t)
+            if (this.animate) {
+                this.drawTrendsAnimation(t,this.addEvent.bind(this))
+            } else {
+                this.addEvent()
+                this.drawTrends(t)
+            }
         }
     }
 
@@ -119,7 +133,6 @@ export default class Chart extends cc.Component {
                 return this.hideTips()
             }
             
-
             for (let i = 0; i < this.trendsPoint.length; i++) {
                 const tp = this.trendsPoint[i];
                 if (p.x < tp.x + offset && p.x > tp.x - offset) {
@@ -212,7 +225,78 @@ export default class Chart extends cc.Component {
         }
     }
 
-    drawTrends(colContent:number[]) {
+    drawTrendsAnimation(colContent:number[],callback?:Function) {
+        const gra = this.trendsGraphicsNode.getComponent(cc.Graphics);
+        gra.strokeColor = cc.Color.RED;
+
+        const pointGra = this.pointsGraphicsNode.getComponent(cc.Graphics)
+        pointGra.fillColor = cc.Color.RED;
+
+        let points = colContent.map((e,i)=>{
+            const p = this._points[i][e - 1];
+            this.trendsPoint[i] = p;
+            this.trendsValues[i] = String(10 - e + 1)
+            return p;
+        });
+        /**动画时间 */
+        const time = this.animateTime;
+        /** 两个开奖点之间的间隔绘制数 */
+        const offset_count = Math.floor(time * 60 / (this.columnCount - 1));
+        /** 总共需要重复绘制的次数 */
+        const repeat = (offset_count - 1) * (this.columnCount - 1) + this.columnCount;
+        /** 已经绘制的次数 */
+        let has_repeat = 0;
+        /** 已经到了第几个点，向上取整 */
+        let p_index = 0;
+        /** 这个点期间绘制了多少次 */
+        let p_i = 0;
+
+        /** 绘制点的坐标x */
+        let x = points[0].x;
+        /** 绘制点的坐标y */
+        let y = points[0].y;
+
+        gra.moveTo(x,y)
+        // cc.log('offset_count:',offset_count)
+        // cc.log('repeat:',repeat)
+        // cc.log(points)
+
+        // let array = [];
+        points.push(cc.Vec2.ZERO)
+        this.schedule(()=>{
+            /** 转折前的起点 */
+            const p = points[p_index];
+            /** 转折点和转折起点的差值 */
+            const o = points[p_index + 1].sub(p);
+            /** x轴差值 */
+            const ox = o.x / offset_count;
+            /** y轴差值 */
+            const oy = o.y / offset_count;
+            gra.moveTo(x,y)
+            x = p.x + ox * p_i;
+            y = p.y + oy * p_i;
+            if (p_i == 0) {
+                pointGra.circle(x,y,5)
+                pointGra.fill();
+            }
+            p_i ++;
+            if (p_i == offset_count) {
+                p_i = 0;
+                p_index ++;
+                cc.log('新的一轮',p_index)
+            }
+
+            gra.lineTo(x,y)
+            gra.stroke()
+
+            has_repeat ++;
+            if (has_repeat == repeat) {
+                callback && callback()
+            }
+        },0,repeat - 1,0)
+    }
+
+    drawTrends(colContent:number[])   {
         const gra = this.trendsGraphicsNode.getComponent(cc.Graphics);
         gra.strokeColor = cc.Color.RED;
 
@@ -234,6 +318,8 @@ export default class Chart extends cc.Component {
         }
         gra.stroke()
         pointGra.fill()
+
+        cc.log('values',this.trendsValues)
     }
 
     showTips(index:number,point:cc.Vec2) {
